@@ -41,6 +41,8 @@ bool TopSort(const Graph& graph, int from, Visit visit, std::vector<int>& topsor
 {
 	std::vector<int> color(graph.VertexCount(), 0); // 0 - белый; 1 - серый; 2 - черный
 	std::stack<int> s;
+	bool from_new;
+
 	do
 	{
 		s.push(from);
@@ -63,7 +65,7 @@ bool TopSort(const Graph& graph, int from, Visit visit, std::vector<int>& topsor
 			//if color[verex] == 0
 			color[vertex] = 1;
 			const std::vector <int> next = graph.GetNextVertex(vertex);
-			for (int i = 0; i < next.size(); ++i)
+			for (unsigned int i = 0; i < next.size(); ++i)
 			{
 				if (color[next[i]] == 0)
 				{
@@ -77,14 +79,15 @@ bool TopSort(const Graph& graph, int from, Visit visit, std::vector<int>& topsor
 			}
 		}
 		//проходимся по color и находим непокрашенную вершину
-		from = -1;
-		for (int j = 0; j < color.size(); ++j)
+		from_new = false;
+		for (int j = from; j < color.size(); ++j)
 			if (color[j] == 0)
 			{
 				from = j;
+				from_new = true;
 				break;
 			}
-	} while (from != -1);
+	} while (from_new);
 
 	//there is no circle
 	return false;
