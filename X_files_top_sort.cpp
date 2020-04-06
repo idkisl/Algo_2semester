@@ -2,13 +2,15 @@
 #include <vector>
 #include <stack>
 
+enum color{WHITE, GREY, BLACK};
+
 typedef void (*Visit)(int vertex, std::vector<int>&);
 
 class Graph
 {
 	std::vector <std::vector<int>> graph;
 public:
-	Graph(unsigned int vertexCount)
+	explicit Graph(unsigned int vertexCount)
 	{
 		graph.resize(vertexCount);
 	}
@@ -18,7 +20,7 @@ public:
 			throw "Vertex number is non available";
 		graph[a].push_back(b);
 	}
-	bool HasEdge(unsigned int from, unsigned int to)
+	bool HasEdge(unsigned int from, unsigned int to) const
 	{
 		if (from >= graph.size())
 			return false;
@@ -39,7 +41,7 @@ public:
 
 bool TopSort(const Graph& graph, int from, Visit visit, std::vector<int>& topsort)
 {
-	std::vector<int> color(graph.VertexCount(), 0); // 0 - белый; 1 - серый; 2 - черный
+	std::vector<color> color(graph.VertexCount(), WHITE);
 	std::stack<int> s;
 	bool from_new;
 
@@ -49,29 +51,29 @@ bool TopSort(const Graph& graph, int from, Visit visit, std::vector<int>& topsor
 		while (!s.empty())
 		{
 			int vertex = s.top();
-			if (color[vertex] == 2)
+			if (color[vertex] == BLACK)
 			{
 				s.pop();
 				continue;
 			}
-			if (color[vertex] == 1)
+			if (color[vertex] == GREY)
 			{
 				s.pop();
-				color[vertex] = 2;
+				color[vertex] = BLACK;
 				visit(vertex, topsort);
 				continue;
 			}
 
-			//if color[verex] == 0
-			color[vertex] = 1;
+			//if color[verex] == WHITE
+			color[vertex] = GREY;
 			const std::vector <int> next = graph.GetNextVertex(vertex);
 			for (unsigned int i = 0; i < next.size(); ++i)
 			{
-				if (color[next[i]] == 0)
+				if (color[next[i]] == WHITE)
 				{
 					s.push(next[i]);
 				}
-				else if (color[next[i]] == 1)
+				else if (color[next[i]] == GREY)
 				{
 					//we found circle
 					return true;
@@ -81,7 +83,7 @@ bool TopSort(const Graph& graph, int from, Visit visit, std::vector<int>& topsor
 		//проходимся по color и находим непокрашенную вершину
 		from_new = false;
 		for (int j = from; j < color.size(); ++j)
-			if (color[j] == 0)
+			if (color[j] == WHITE)
 			{
 				from = j;
 				from_new = true;
