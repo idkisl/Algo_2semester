@@ -2,6 +2,9 @@
 #include <vector>
 #include <stack>
 #include <unordered_set>
+
+enum color {WHITE, GREY, BLACK};
+
 template<class T>
 const T& max(const T& a, const T& b)
 {
@@ -14,7 +17,7 @@ class Graph
 {
 	std::vector <std::vector<int>> graph;
 public:
-	Graph(unsigned int vertexCount)
+	explicit Graph(unsigned int vertexCount)
 	{
 		graph.resize(vertexCount);
 	}
@@ -43,17 +46,17 @@ public:
 	{
 		return graph.size();
 	}
-	void TransposeGraph()
+	Graph TransposeGraph() const
 	{
-		std::vector<std::vector<int>> transposed_graph(graph.size());
+		Graph transposed_graph(graph.size());
 		for (int i = 0; i < graph.size(); ++i)
 			for (int j = 0; j < graph[i].size(); ++j)
-				transposed_graph[graph[i][j]].push_back(i);
-		graph = transposed_graph;
+				transposed_graph.graph[graph[i][j]].push_back(i);
+		return transposed_graph;
 	}
 };
 
-int HowManyEdgesAdd(Graph& graph)
+int HowManyEdgesAdd(const Graph& graph)
 {
 	if (graph.VertexCount() == 1)
 		return 0;
@@ -65,43 +68,42 @@ int HowManyEdgesAdd(Graph& graph)
 		if (next.empty())
 			++count_root_vertex;
 	}
-	graph.TransposeGraph();
-	for (int i = 0; i < graph.VertexCount(); ++i)
+	Graph new_graph = graph.TransposeGraph();
+	for (int i = 0; i < new_graph.VertexCount(); ++i)
 	{
-		std::vector<int> next = graph.GetNextVertex(i);
+		std::vector<int> next = new_graph.GetNextVertex(i);
 		if (next.empty())
 			++count_leaf_vertex;
 	}
-	graph.TransposeGraph();
 	return max(count_leaf_vertex, count_root_vertex);
 }
 
-void DFS(const Graph& graph, int from, Visit visit, std::vector<int>& color, std::vector<int>& t_out)
+void DFS(const Graph& graph, int from, Visit visit, std::vector<color>& color, std::vector<int>& t_out)
 {
 	std::stack<int> s;
 	s.push(from);
 	while (!s.empty())
 	{
 		int vertex = s.top();
-		if (color[vertex] == 2)
+		if (color[vertex] == BLACK)
 		{
 			s.pop();
 			continue;
 		}
-		if (color[vertex] == 1)
+		if (color[vertex] == GREY)
 		{
 			s.pop();
-			color[vertex] = 2;
+			color[vertex] = BLACK;
 			visit(vertex, t_out);
 			continue;
 		}
 
-		//if color[verex] == 0
-		color[vertex] = 1;
+		//if color[verex] == WHITE
+		color[vertex] = GREY;
 		const std::vector <int> next = graph.GetNextVertex(vertex);
 		for (unsigned int i = 0; i < next.size(); ++i)
 		{
-			if (color[next[i]] == 0)
+			if (color[next[i]] == WHITE)
 			{
 				s.push(next[i]);
 			}
@@ -114,30 +116,30 @@ void SaveVertex(int vertex, std::vector<int>& save)
 	save.push_back(vertex);
 }
 
-int FindComponentCombined(Graph& graph, std::vector<int>& combined_vertex)
+int FindComponentCombined(const Graph& graph, std::vector<int>& combined_vertex)
 {
-	std::vector<int> color(graph.VertexCount(), 0); // 0 - белый; 1 - серый; 2 - черный
+	std::vector<color> color(graph.VertexCount(), WHITE);
 	std::vector<int> t_out;
 	for (unsigned int i = 0; i < color.size(); ++i)
-		if (color[i] == 0)
+		if (color[i] == WHITE)
 		{
 			DFS(graph, i, SaveVertex, color, t_out);
 		}
 
-	graph.TransposeGraph();
+	Graph new_graph = graph.TransposeGraph();
 
 	for (int i = 0; i < color.size(); ++i)
 	{
-		color[i] = 0;
+		color[i] = WHITE;
 	}
 
 	int count_layers = 0;
-	for (int i = t_out.size() - 1; i >= 0; --i)
+	for (int i = int(t_out.size()) - 1; i >= 0; --i)
 	{
-		if (color[t_out[i]] == 0)
+		if (color[t_out[i]] == WHITE)
 		{
 			std::vector<int> t_out_transpose;
-			DFS(graph, t_out[i], SaveVertex, color, t_out_transpose);
+			DFS(new_graph, t_out[i], SaveVertex, color, t_out_transpose);
 			for (int j = 0; j < t_out_transpose.size(); ++j)
 			{
 				combined_vertex[t_out_transpose[j]] = count_layers;
@@ -145,11 +147,10 @@ int FindComponentCombined(Graph& graph, std::vector<int>& combined_vertex)
 			++count_layers;
 		}
 	}
-	graph.TransposeGraph();
 	return count_layers;
 }
 
-int FindAnswer(Graph& graph)
+int FindAnswer(const Graph& graph)
 {
 	std::vector<int> combined_vertex(graph.VertexCount());
 	int count_component = FindComponentCombined(graph, combined_vertex);
