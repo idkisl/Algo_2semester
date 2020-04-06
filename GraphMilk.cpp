@@ -2,13 +2,15 @@
 #include <vector>
 #include <queue>
 
+enum color{WHITE, GREY, BLACK};
+
 typedef void (*Visit)(int a, int b, std::vector<int>&);
 
 class Graph
 {
 	std::vector <std::vector<int>> graph;
 public:
-	Graph(unsigned int vertexCount)
+	explicit Graph(unsigned int vertexCount)
 	{
 		graph.resize(vertexCount);
 	}
@@ -19,7 +21,7 @@ public:
 		graph[a].push_back(b);
 		graph[b].push_back(a);
 	}
-	bool HasEdge(unsigned int from, unsigned int to)
+	bool HasEdge(unsigned int from, unsigned int to) const
 	{
 		if (from >= graph.size())
 			return false;
@@ -41,32 +43,31 @@ public:
 void BFS(const Graph& graph, int from, Visit visit, std::vector<int>& d)
 {
 	std::queue<int> qu;
-	std::vector<int> color(graph.VertexCount(), 0); // 0 - белый; 1- серый; 2 - черный
+	std::vector<color> color(graph.VertexCount(), WHITE);
 	do
 	{
 		qu.push(from);
-		color[from] = 1;
+		color[from] = GREY;
 		while (!qu.empty())
 		{
 			int vertex = qu.front();
 			qu.pop();
-			color[vertex] = 2;
+			color[vertex] = BLACK;
 			const std::vector <int>& next = graph.GetNextVertex(vertex);
 			for (unsigned int i = 0; i < next.size(); ++i)
 			{
-				if (color[next[i]] == 0)
+				if (color[next[i]] == WHITE)
 				{
 					qu.push(next[i]);
-					color[next[i]] = 1;
+					color[next[i]] = GREY;
 					visit(vertex, next[i],d);
 				}
 			}
-			//visit(vertex, next);
 		}
 		//проходимся по color и находим непокрашенную вершину
 		from = -1;
 		for (unsigned int j = 0; j < color.size(); ++j)
-			if (color[j] == 0)
+			if (color[j] == WHITE)
 			{
 				from = j;
 				break;
@@ -79,7 +80,7 @@ void Distance(int vertex, int neighbour,std::vector<int>& d)
 	d[neighbour] = d[vertex] + 1;
 }
 
-int FindAnswer(Graph& graph, int Leon, int Matilda, int Milk)
+int FindAnswer(const Graph& graph, int Leon, int Matilda, int Milk)
 {
 	std::vector<int> dMilk(graph.VertexCount(),0);
 	std::vector<int> dLeon(graph.VertexCount(), 0);
