@@ -14,6 +14,7 @@ public:
 		if (from >= graph.size() || to >= graph.size())
 			throw std::runtime_error("Vertex number is non available in function AddEdge");
 		graph[from].push_back(std::make_pair(to, weight));
+		graph[to].push_back(std::make_pair(from, weight));
 	}
 	bool HasEdge(unsigned int from, unsigned int to) const
 	{
@@ -48,7 +49,8 @@ public:
 Graph MakeGraph(int N, int M)
 {
 	Graph graph(N);
-	int from, to, cost;
+	int from, to;
+	int cost;
 	for (int i = 0; i < M; ++i)
 	{
 		std::cin >> from >> to >> cost;
@@ -57,38 +59,40 @@ Graph MakeGraph(int N, int M)
 	return graph;
 }
 
-int FordBellman(const Graph& graph, int from, int to, int K)
+double FordBellman(const Graph& graph, int from, int to)
 {
-	const int INF = 2000000; // инициализация бесконечности
-	std::vector<int> dist(graph.VertexCount(), INF);
-	dist[from] = 0;
-	for (int i = 0; i < K; ++i)
+	const int INF = 200; // инициализация бесконечности
+
+	std::vector<double> probability(graph.VertexCount(), INF);
+	probability[from] = 0;
+	for (unsigned int i = 0; i < graph.VertexCount(); ++i)
 	{
-		std::vector<int> new_dist = dist;
 		for (int j = 0; j < graph.VertexCount(); ++j)
 		{
 			std::vector<std::pair<int, int>> next = graph.GetNextVertex(j); // проходимся по всем ребрам
 			for (int k = 0; k < next.size(); ++k)
 			{
 				int nextK = next[k].first;
-				int next_edge = next[k].second;
-				if (dist[nextK] > dist[j] + next_edge)
+				double next_edge = double(next[k].second) / 100;
+				double next_probability = probability[j] + next_edge - probability[j] * next_edge;
+				if (next_probability < probability[nextK])
 				{
-					new_dist[nextK] = dist[j] + next_edge;
+					probability[nextK] = next_probability;
 				}
 			}
 		}
-		dist = new_dist;
 	}
-
-	return dist[to] == INF ? -1 : dist[to];
+	if (probability[to] == INF)
+		throw std::runtime_error("There is no way from FROM to TO");
+	return probability[to];
 }
 
 int main()
 {
-	int N, M, from, to, K;
-	std::cin >> N >> M >> K >> from >> to;
+	int N, M, from, to;
+	std::cin >> N >> M >> from >> to;
 	Graph graph = MakeGraph(N, M);
-	std::cout << FordBellman(graph, from - 1, to - 1, K);
+	double answer = FordBellman(graph, from - 1, to - 1);
+	std::cout << answer;
 	return 0;
 }
