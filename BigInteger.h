@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 class BigInteger
 {
@@ -9,19 +10,18 @@ class BigInteger
 	static const unsigned int number_size = 9;
 	std::vector<unsigned int> number;
 	int sign = 1; // +1 or -1
-	bool isLess(const std::vector<unsigned int>& left, const std::vector<unsigned int>& right) const;
 	BigInteger Karatsuba(const BigInteger& left, const BigInteger& right) const;
 	BigInteger GetHalfNumber(unsigned int size, bool is_left) const;
 	BigInteger Partition(const BigInteger& dividend, const BigInteger& divisor) const;
 	std::pair<BigInteger, BigInteger> DivisorSearch(const BigInteger& did, const BigInteger& dis) const;
-public:
-	BigInteger(const std::string& str);
-	BigInteger();
-	BigInteger(int construct_number);
-	BigInteger(unsigned int construct_number);
-	BigInteger(uint64_t construct_number);
-	explicit operator bool() const;
 	explicit operator std::string() const;
+public:
+	explicit BigInteger(const std::string& str);
+	explicit BigInteger() = default;
+	BigInteger(int construct_number); // тут не должно быть explicit, иначе все ломается, преодразования из int могут быть неявными
+	explicit BigInteger(unsigned int construct_number);
+	explicit BigInteger(uint64_t construct_number);
+	explicit operator bool() const;
 	std::string toString() const;
 	BigInteger operator-() const; // унарный минус
 	BigInteger& operator++(); // префиксный инкремент
@@ -42,6 +42,7 @@ public:
 	friend BigInteger operator+(const BigInteger& left, const BigInteger& right);
 	friend BigInteger operator-(const BigInteger& left, const BigInteger& right);
 
+	friend bool isLess(const BigInteger& left, const BigInteger& right);
 	friend bool operator<(const BigInteger& left, const BigInteger& right);
 	friend bool operator>(const BigInteger& left, const BigInteger& right);
 	friend bool operator==(const BigInteger& left, const BigInteger& right);

@@ -1,50 +1,11 @@
 ﻿#include "BigInteger.h"
 
-bool BigInteger::isLess(const std::vector<unsigned int>& left, const std::vector<unsigned int>& right) const
-{
-	unsigned int l_size = left.size();
-	unsigned int r_size = right.size();
-	//проверка на незначащие нули
-	if (l_size > 0)
-		for (unsigned int i = left.size() - 1; i > 0; --i)
-		{
-			if (left[i] == 0)
-			{
-				--l_size;
-				continue;
-			}
-			break;
-		}
-	if (r_size > 0)
-		for (unsigned i = right.size() - 1; i > 0; --i)
-		{
-			if (right[i] == 0)
-			{
-				--r_size;
-				continue;
-			}
-			break;
-		}
-	if (l_size < r_size)
-		return true;
-	if (l_size > r_size)
-		return false;
-	for (int i = l_size - 1; i >= 0; --i) // l_size
-	{
-		if (left[i] < right[i])
-			return true;
-		if (left[i] > right[i])
-			return false;
-	}
-	return false;
-}
-
 BigInteger BigInteger::Karatsuba(const BigInteger& X, const BigInteger& Y) const
 {
 	unsigned int n = (X.number.size() > Y.number.size() ? X.number.size() : Y.number.size());
 	if (n == 1)
 	{
-		uint64_t res = static_cast<uint64_t>(X.number[0]) * static_cast<uint64_t>(Y.number[0]);
+		uint64_t res = static_cast<uint64_t>(X.number[0]) * (Y.number[0]);
 		BigInteger result(res);
 		return result;
 	}
@@ -52,25 +13,17 @@ BigInteger BigInteger::Karatsuba(const BigInteger& X, const BigInteger& Y) const
 		++n;
 	BigInteger X_r = X.GetHalfNumber(n / 2, false);
 	BigInteger X_l = X.GetHalfNumber(n / 2, true);
-	BigInteger Y_l = Y.GetHalfNumber(n / 2, true);
 	BigInteger Y_r = Y.GetHalfNumber(n / 2, false);
+	BigInteger Y_l = Y.GetHalfNumber(n / 2, true);
 	BigInteger Prod1 = Karatsuba(X_l, Y_l);
 	BigInteger Prod2 = Karatsuba(X_r, Y_r);
 	BigInteger Prod3 = Karatsuba(X_l + X_r, Y_l + Y_r);
-	BigInteger Sum = Prod3;
-	Sum -= Prod1;
-	Sum -= Prod2;
+	BigInteger Sum = Prod3 - Prod1 - Prod2;
 	//вернуть Prod1 * 10 ^ n + (Prod3 - Prod1 - Prod2) * 10 ^ (n / 2) + Prod2
 	BigInteger answer;
-	unsigned int max = n + Prod1.number.size();
-	if (max < n / 2 + Sum.number.size())
-		max = Sum.number.size() + n / 2;
-	if (max < Prod2.number.size())
-		max = Prod2.number.size();
-	++max;
+	auto max = std::max({ n + Prod1.number.size() + 1, n / 2 + Sum.number.size() + 1, Prod2.number.size() + 1 });
 
-	for (unsigned int i = 0; i < max; ++i)
-		answer.number.push_back(0);
+	answer.number.resize(max, 0);
 
 	for (unsigned int i = 0; i < n / 2; ++i)
 	{
@@ -79,10 +32,8 @@ BigInteger BigInteger::Karatsuba(const BigInteger& X, const BigInteger& Y) const
 	}
 	BigInteger after_prod_1;
 	unsigned int end_size = (Prod2.number.size() > n / 2 ? Prod2.number.size() - n / 2 : 0);
-	for (int i = 0; i < end_size; ++i)
-	{
-		after_prod_1.number.push_back(0);
-	}
+	after_prod_1.number.resize(end_size, 0);
+
 	for (unsigned int i = n / 2; i < Prod2.number.size(); ++i)
 		after_prod_1.number[i - n / 2] = Prod2.number[i];
 	Sum += after_prod_1; // остаток от предыдущего раздяра
@@ -118,23 +69,19 @@ BigInteger BigInteger::Karatsuba(const BigInteger& X, const BigInteger& Y) const
 			break;
 		}
 	}
-	answer.sign *= answer.sign;
+	answer.sign = 1;
 	return answer;
 }
 
 BigInteger BigInteger::GetHalfNumber(unsigned int size, bool is_left) const
 {
-	if (size * 2 < number.size())
-	{
-		throw std::runtime_error("Incorrect size_GetHalfNumber");
-	}
 	unsigned int start_index;
 	unsigned int end_index;
 
 	if (is_left)
 	{
 		if (size >= number.size())
-			return BigInteger("0");
+			return 0;
 		start_index = size;
 		end_index = number.size();
 	}
@@ -252,7 +199,7 @@ BigInteger::BigInteger(const std::string& str)
 	unsigned int current = 0;
 	for (int i = int(size - 1); i >= int(index_start_of_number); i -= number_size)
 	{
-		int start_index = ((i < int(number_size)) ? index_start_of_number : i - number_size + 1);
+		int start_index = std::max(index_start_of_number, i - int(number_size) + 1);
 		current = 0;
 		for (int j = start_index; j <= i; ++j)
 		{
@@ -264,8 +211,6 @@ BigInteger::BigInteger(const std::string& str)
 	if (number.size() == 1 && number[0] == 0)
 		sign = 1;
 }
-
-BigInteger::BigInteger() {}
 
 BigInteger::BigInteger(int construct_number)
 {
@@ -309,9 +254,8 @@ BigInteger::operator bool() const
 BigInteger::operator std::string() const
 {
 	std::string  reverse_number= "";
-	for (unsigned int i = 0; i < number.size(); ++i)
+	for (auto current : number)
 	{
-		int current = number[i];
 		for (unsigned int j = 0; j < number_size; ++j)
 		{
 			std::string c = std::to_string(current % 10);
@@ -621,68 +565,95 @@ BigInteger operator-(const BigInteger& left, const BigInteger& right)
 	return result;
 }
 
+bool isLess(const BigInteger& bi_left, const BigInteger& bi_right)
+{
+	if (bi_left.sign == 1 && bi_right.sign == -1)
+		return false;
+	if (bi_left.sign == -1 && bi_right.sign == 1)
+		return true;
+	const std::vector<unsigned int>& left = bi_left.number;
+	const std::vector<unsigned int>& right = bi_right.number;
+	unsigned int l_size = left.size();
+	unsigned int r_size = right.size();
+	//проверка на незначащие нули
+	if (l_size > 0)
+		for (unsigned int i = left.size() - 1; i > 0; --i)
+		{
+			if (left[i] == 0)
+			{
+				--l_size;
+				continue;
+			}
+			break;
+		}
+	if (r_size > 0)
+		for (unsigned i = right.size() - 1; i > 0; --i)
+		{
+			if (right[i] == 0)
+			{
+				--r_size;
+				continue;
+			}
+			break;
+		}
+
+	bool isvector_left_less;
+	if (l_size < r_size)
+		isvector_left_less = true;
+	else if (l_size > r_size)
+		isvector_left_less = false;
+	else
+	{
+		bool does_value_changed = false;
+		for (int i = l_size - 1; i >= 0; --i) // l_size
+		{
+			if (left[i] < right[i])
+			{
+				isvector_left_less = true;
+				does_value_changed = true;
+				break;
+			}
+			if (left[i] > right[i])
+			{
+				isvector_left_less = false;
+				does_value_changed = true;
+				break;
+			}
+		}
+		if (!does_value_changed)
+			isvector_left_less = false;
+	}
+	if (bi_left.sign == 1 && bi_right.sign == 1)
+		return isvector_left_less;
+	return !isvector_left_less;
+}
+
 bool operator<(const BigInteger& left, const BigInteger& right)
 {
-	if (left.sign < right.sign)
-		return true;
-	if (left.sign > right.sign)
-		return false;
-	bool answer = left.isLess(left.number, right.number);
-	return left.sign == 1 ? answer : !answer;
+	return isLess(left, right);
 }
 
 bool operator>(const BigInteger& left, const BigInteger& right)
 {
-	if (left.sign > right.sign)
-		return true;
-	if (left.sign < right.sign)
-		return false;
-	bool answer = left.isLess(right.number, left.number);
-	return left.sign == 1 ? answer : !answer;
+	return isLess(right, left);
 }
 
 bool operator==(const BigInteger& left, const BigInteger& right)
 {
-	if (left.sign != right.sign)
-		return false;
-	return (!left.isLess(right.number, left.number) && !left.isLess(left.number, right.number));
+	return (!isLess(left,right) && !isLess(right, left));
 }
 
 bool operator!=(const BigInteger& left, const BigInteger& right)
 {
-	if (left.sign != right.sign)
-		return true;
-	return (left.isLess(right.number, left.number) || left.isLess(left.number, right.number));
+	return (isLess(left, right) || isLess(right, left));
 }
 
 bool operator<=(const BigInteger& left, const BigInteger& right)
 {
-	if (left.sign < right.sign)
-		return true;
-	if (left.sign > right.sign)
-		return false;
-	bool left_compare = left.isLess(left.number, right.number);
-	bool right_compare = left.isLess(right.number, left.number);
-	if (left.sign == -1)
-	{
-		left_compare = !left_compare;
-		right_compare = !right_compare;
-	}
-	return left_compare || (!right_compare && !left_compare);
+	return (isLess(left, right) || (left == right));
 }
 
 bool operator>=(const BigInteger& left, const BigInteger& right)
 {
-	if (left.sign > right.sign)
-		return true;
-	if (left.sign < right.sign)
-		return false;
-	bool left_compare = left.isLess(left.number, right.number);
-	bool right_compare = left.isLess(right.number, left.number);
-	if (left.sign == -1)
-	{
-		left_compare = !left_compare;
-		right_compare = !right_compare;
-	}
-	return right_compare || (!right_compare && !left_compare);
+	return !isLess(left, right);
 }
