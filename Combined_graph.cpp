@@ -111,13 +111,9 @@ void DFS(const Graph& graph, int from, Visit visit, std::vector<color>& color, s
 	}
 }
 
-void SaveVertex(int vertex, std::vector<int>& save)
-{
-	save.push_back(vertex);
-}
-
 int FindComponentCombined(const Graph& graph, std::vector<int>& combined_vertex)
 {
+	auto SaveVertex = [](int vertex, std::vector<int>& save) { save.push_back(vertex); };
 	std::vector<color> color(graph.VertexCount(), WHITE);
 	std::vector<int> t_out;
 	for (unsigned int i = 0; i < color.size(); ++i)
@@ -150,7 +146,7 @@ int FindComponentCombined(const Graph& graph, std::vector<int>& combined_vertex)
 	return count_layers;
 }
 
-int FindAnswer(const Graph& graph)
+int FindVertexToAdd(const Graph& graph)
 {
 	std::vector<int> combined_vertex(graph.VertexCount());
 	int count_component = FindComponentCombined(graph, combined_vertex);
@@ -188,6 +184,6 @@ int main()
 		--to;
 		graph.AddEdge(from, to);
 	}
-	std::cout << FindAnswer(graph);
+	std::cout << FindVertexToAdd(graph);
 	return 0;
 }
